@@ -10,20 +10,9 @@ const cardStyle = {
 };
 
 export default class Card extends Component {
-  constructor(props) {
-    super(props);
-  }
-  componentDidMount(){
-    //   console.log('====================================');
-    //   console.log('a');
-      console.log(this.props);
-    //   console.log('====================================');
-  }
   render() {
     const { card, id:pid } = this.props;
-    console.log(this.props);
-    console.log(pid);
-    const { id, cnName, jpName, enName, cardType,race, attribute, starts, ATK, DEF, rarity, description } = card;
+    const { id, cnName, jpName, enName, cardType,race, attribute, description } = card;
     return (
       <div style={cardStyle} id={pid ? pid :`card_${id}`}>
         <h3>{cnName}</h3>

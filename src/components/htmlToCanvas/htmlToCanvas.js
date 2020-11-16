@@ -3,7 +3,7 @@ import html2canvas from "html2canvas";
 import Card from "../Card";
 import JSZip from "jszip";
 
-const batchDataJSON = [
+const dataJSON = [
   {
     id: "1",
     cnName: "水元素",
@@ -80,10 +80,12 @@ export default class HtmlToCanvas extends Component {
     html2canvas(document.getElementById(`${_id}`), {
       backgroundColor: "transparent",
     }).then((canvas) => {
-      let base64Data = canvas
+      // 重点之一，获取 canvas 的 base64
+      const base64Data = canvas
         .toDataURL("image/jpeg")
-        //   必须把base64的头给去掉才能转成图片，不然会检测到是一个文件路径导致报错
+        // 重点之二，必须把base64的头给去掉才能转成图片，不然后面使用jszip插件的时候，插件会检测到该数据是一个文件路径而导致报错
         .replace("data:image/jpeg;base64,", "");
+      // 把数据的指定元素保存为到时候生成图片文件的文件名
       const _name = batchData[0].cnName;
       base64Arr.push({ name: _name, base64: base64Data });
       this.data2JSzip(base64Arr);
@@ -91,12 +93,14 @@ export default class HtmlToCanvas extends Component {
   };
 
   data2JSzip(base64Arr) {
-    console.log(base64Arr);
     //   初始化事件
     var zip = new JSZip();
+    // 遍历数据
     base64Arr.map(function (obj) {
-      // zip包里面不断塞jpg文件
-      zip.file(obj.name + ".jpg", obj.base64, { base64: true });
+      // 往zip包里面不断塞jpg文件，使用上面保存的 name 作为文件名
+      // 后面的 { base64: true } 记得设置，意思为允许 base64 的数据
+      zip.file(`${obj.name}.jpg`, obj.base64, { base64: true });
+      return this;
     });
     zip
       .generateAsync({
@@ -104,7 +108,7 @@ export default class HtmlToCanvas extends Component {
       })
       .then(function (content) {
         // 下载的文件名
-        var filename = `${base64Arr.length > 1 ? '批量下载' : '单个下载' }.zip`;
+        var filename = `${base64Arr.length > 1 ? "批量下载" : "单个下载"}.zip`;
         // 创建隐藏的可下载链接
         var eleLink = document.createElement("a");
         eleLink.download = filename;
@@ -119,46 +123,46 @@ export default class HtmlToCanvas extends Component {
       });
   }
 
-  batchHtml2canvasFn = () => {
+  batchHtml2canvas = () => {
     let base64Arr = [];
-    batchDataJSON.map((card) => {
+    dataJSON.map((card) => {
       html2canvas(document.getElementById(`card_${card.id}`), {
         backgroundColor: "transparent",
       }).then((canvas) => {
-        let base64Data = canvas
+        const base64Data = canvas
           .toDataURL("image/jpeg")
           //   必须把base64的头给去掉才能转成图片，不然会检测到是一个文件路径导致报错
           .replace("data:image/jpeg;base64,", "");
         const _name = card.cnName;
         base64Arr.push({ name: _name, base64: base64Data });
-        if (base64Arr.length === batchDataJSON.length) {
+        if (base64Arr.length === dataJSON.length) {
           this.data2JSzip(base64Arr);
         }
       });
+      return "";
     });
   };
 
   //   更新批量数据
   getBatchData = () => {
     this.setState({
-      batchData: batchDataJSON,
+      batchData: dataJSON,
     });
   };
 
   //   更新单个数据
   getSingleData = () => {
     this.setState({
-      batchData: [batchDataJSON[0]],
+      batchData: [dataJSON[0]],
     });
   };
-
   //   更新数据，父组件执行渲染
-  componentDidUpdate(prevProps, prevState) {
+  componentDidUpdate() {
     console.log("====================================");
     if (this.state.batchData.length === 1) {
       this.singleHtml2canvas && this.singleHtml2canvas();
     } else {
-      this.batchHtml2canvasFn && this.batchHtml2canvasFn();
+      this.batchHtml2canvas && this.batchHtml2canvas();
     }
     console.log("====================================");
   }
@@ -166,11 +170,15 @@ export default class HtmlToCanvas extends Component {
   render() {
     const CardsItem =
       this.state.batchData.length > 0 ? (
-        this.state.batchData.map((card, index) => (
-          <Card card={card} key={card.id} />
-        ))
+        this.state.batchData.length > 1 ? (
+          this.state.batchData.map((card, index) => (
+            <Card card={card} key={card.id} />
+          ))
+        ) : (
+          <Card card={dataJSON[0]} key={dataJSON[0].id} />
+        )
       ) : (
-        <Card card={batchDataJSON[0]} key={batchDataJSON[0].id} />
+        <div></div>
       );
     return (
       <div id="canvasMain">
@@ -182,7 +190,7 @@ export default class HtmlToCanvas extends Component {
 
         <table style={cardsWrapper}>
           <thead>
-            {batchDataJSON.map((card, index) => (
+            {dataJSON.map((card) => (
               <tr key={card.id}>
                 <td>{card.cnName}</td>
                 <td>{card.jpName}</td>
@@ -196,7 +204,6 @@ export default class HtmlToCanvas extends Component {
         </table>
 
         <div style={cardsWrapper}>{CardsItem}</div>
-        {/* <Card card={batchDataJSON[0]} id={"canvasDemo"} /> */}
       </div>
     );
   }
